@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Register = () => {
@@ -9,72 +9,72 @@ const Register = () => {
     const [password, setPassword] = useState("");
     const [username, setUsername] = useState("");
     const [role, setRole] = useState<"admin" | "manager" | "team_member">("team_member");
-    const [error, setError] = useState<string | null>(null);
-    const [message, setMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleRegister = async () => {
+        if (!email || !password || !username) {
+            toast.error("Please fill in all fields.");
+            return;
+        }
+
         setLoading(true);
-        setError(null);
-        setMessage(null);
 
         try {
             // Sign up the user with Supabase Auth
-            const { data: { user }, error: authError } = await supabase.auth.signUp({
+            const { data, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
             });
 
             if (authError) {
-                setError(authError.message);
+                toast.error(authError.message);
                 setLoading(false);
                 return;
             }
 
-            if (!user) {
-                setError("User registration failed.");
+            const user = data?.user;
+            if (!user || !user.id) {
+                toast.error("User registration failed. Please try again.");
                 setLoading(false);
                 return;
             }
 
-            // Add the user to the `users` table
+            // Insert user details into the `users` table
             const { error: userError } = await supabase
                 .from("users")
-                .insert([{ id: user.id, email, username, password, role }]);
+                .insert([{ id: user.id, email, username, role }]);
 
             if (userError) {
-                setError("Failed to save user details.");
+                toast.error("Failed to save user details. Please try again.");
                 setLoading(false);
                 return;
             }
 
-            // Show a success message
-            setMessage("Registration successful! Please check your email to confirm your account.");
+            // Show success message
+            toast.success("Registration successful! Please check your email to confirm your account.");
 
-            // Redirect to the login page after a short delay
-            setTimeout(() => {
-                navigate("/login");
-            }, 3000);
+            // Redirect to login after a short delay
+            setTimeout(() => navigate("/login"), 3000);
         } catch (error) {
-            setError("An error occurred during registration.");
-            console.error(error);
+            console.error("Registration error:", error);
+            toast.error("An unexpected error occurred. Please try again.");
+        } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-r from-purple-50 to-blue-50 ">
+        <div className="min-h-screen bg-gradient-to-r from-purple-50 to-blue-50">
             <div className="flex items-center justify-center h-screen">
                 <div className="bg-white bg-opacity-75 p-8 rounded-lg shadow-lg w-96">
                     <h1 className="text-2xl font-bold mb-6">Register</h1>
-                    {error && <p className="text-red-500 mb-4">{error}</p>}
-                    {message && <p className="text-green-500 mb-4">{message}</p>}
                     <input
                         type="email"
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
                         className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <input
@@ -82,6 +82,7 @@ const Register = () => {
                         placeholder="Username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        disabled={loading}
                         className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <input
@@ -89,11 +90,13 @@ const Register = () => {
                         placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
                         className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <select
                         value={role}
                         onChange={(e) => setRole(e.target.value as "admin" | "manager" | "team_member")}
+                        disabled={loading}
                         className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                         <option value="admin">Admin</option>

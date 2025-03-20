@@ -3,7 +3,7 @@ import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { User, Task } from "../types";
 import { toast, ToastContainer } from "react-toastify";
-import { FaHourglassHalf } from "react-icons/fa"; 
+import { FaHourglassHalf } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 
 const Dashboard = () => {
@@ -15,7 +15,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         const fetchUserAndTasks = async () => {
-            setLoading(true); // Add this line
+            setLoading(true);
             try {
                 const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
@@ -24,7 +24,7 @@ const Dashboard = () => {
                     return;
                 }
 
-                // Fetch additional user details (username and role) from the `users` table
+                // Fetch user details
                 const { data: userData, error: userError } = await supabase
                     .from("users")
                     .select("username, role")
@@ -37,16 +37,10 @@ const Dashboard = () => {
                     return;
                 }
 
-                // Merge the Supabase user with the custom fields
-                const user: User = {
-                    ...authUser,
-                    username: userData.username,
-                    role: userData.role,
-                };
+                // Merge user data
+                setUser({ ...authUser, username: userData.username, role: userData.role });
 
-                setUser(user);
-
-                // Fetch tasks assigned to the current user
+                // Fetch tasks assigned to the user
                 const { data: tasks, error: tasksError } = await supabase
                     .from("tasks")
                     .select("*")
@@ -62,10 +56,10 @@ const Dashboard = () => {
                 console.error("Error fetching data:", error);
                 toast.error("An error occurred while fetching data.");
             } finally {
-                setLoading(false); // Add this line
+                setLoading(false);
             }
         };
-    
+
         fetchUserAndTasks();
     }, [navigate]);
 
@@ -84,7 +78,9 @@ const Dashboard = () => {
 
     const handleProgressUpdate = async (taskId: string) => {
         const progress = progressUpdates[taskId];
-        if (progress === undefined || progress < 0 || progress > 100) {
+
+        // Validate input
+        if (progress === undefined || isNaN(progress) || progress < 0 || progress > 100) {
             toast.error("Please enter a valid progress percentage (0-100).");
             return;
         }
@@ -99,9 +95,7 @@ const Dashboard = () => {
             console.error(error);
         } else {
             setTasks((prevTasks) =>
-                prevTasks.map((task) =>
-                    task.id === taskId ? { ...task, progress } : task
-                )
+                prevTasks.map((task) => (task.id === taskId ? { ...task, progress } : task))
             );
             toast.success("Progress updated successfully!");
         }
@@ -110,20 +104,23 @@ const Dashboard = () => {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-cover bg-center bg-no-repeat relative style={{ backgroundImage: `url('../Logo.jpg')` ">
+        <div
+            className="min-h-screen bg-cover bg-center bg-no-repeat relative"
+            style={{ backgroundImage: `url('/Logo.jpg')` }} // ✅ Fixed background image syntax
+        >
             <ToastContainer />
             <nav className="bg-gradient-to-r from-blue-700 to-purple-700 text-white p-4 rounded-lg shadow-lg mb-6">
                 <div className="container mx-auto flex justify-between items-center">
                     <h1 className="text-2xl font-bold">Verzibiz</h1>
-                        <div className="flex items-center space-x-4">
-                            <p className="text-sm">Welcome, {user.username} ({user.role})</p>
-                            <button
-                                onClick={handleLogout}
-                                className="bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition duration-300"
-                            >
-                                Logout
-                            </button>
-                        </div>
+                    <div className="flex items-center space-x-4">
+                        <p className="text-sm">Welcome, {user.username} ({user.role})</p>
+                        <button
+                            onClick={handleLogout}
+                            className="bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition duration-300"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -159,11 +156,11 @@ const Dashboard = () => {
                                                 min="0"
                                                 max="100"
                                                 placeholder="Progress"
-                                                value={progressUpdates[task.id] || ""}
+                                                value={progressUpdates[task.id] ?? ""} // ✅ Fixed empty input issue
                                                 onChange={(e) =>
                                                     setProgressUpdates({
                                                         ...progressUpdates,
-                                                        [task.id]: parseInt(e.target.value),
+                                                        [task.id]: parseInt(e.target.value) || 0, // ✅ Prevents invalid values
                                                     })
                                                 }
                                                 className="w-30 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

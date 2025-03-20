@@ -15,24 +15,19 @@ const Login = () => {
 
         try {
             // Authenticate the user with Supabase Auth
-            const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (authError) {
                 console.error("Login error:", authError);
-                if (authError.message === "Email not confirmed") {
-                    setError("Please confirm your email address before logging in.");
-                } else if (authError.message === "Invalid login credentials") {
-                    setError("Invalid email or password. Please try again.");
-                } else {
-                    setError(authError.message);
-                }
+                setError(authError.message || "Login failed. Please try again.");
                 setLoading(false);
                 return;
             }
 
+            const user = data?.user;
             if (!user) {
                 setError("User not found.");
                 setLoading(false);
@@ -48,19 +43,21 @@ const Login = () => {
 
             if (userError || !userData) {
                 setError("Failed to fetch user role.");
+                console.error("User role fetch error:", userError);
                 setLoading(false);
                 return;
             }
 
             // Redirect to the appropriate dashboard based on the user's role
             if (userData.role === "admin" || userData.role === "manager") {
-                navigate("/admin-dashboard"); // Redirect to Admin Dashboard
+                navigate("/admin-dashboard");
             } else {
-                navigate("/dashboard"); // Redirect to Team Member Dashboard
+                navigate("/dashboard");
             }
         } catch (error) {
-            setError("An error occurred during login.");
-            console.error("Login catch error:", error);
+            console.error("Login error:", error);
+            setError("An unexpected error occurred during login.");
+        } finally {
             setLoading(false);
         }
     };
