@@ -10,8 +10,9 @@ export interface Task {
     progress?: number; // Progress percentage (0-100), optional
 }
 
-export interface User {
+export type User = {
     id: string;
-    email: string;
+    email?: string;
+    username: string;
     role: "admin" | "manager" | "team_member";
-}
+};
