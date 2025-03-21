@@ -22,7 +22,7 @@ const Register = () => {
 
         try {
             // Sign up the user with Supabase Auth
-            const { data, error: authError } = await supabase.auth.signUp({
+            const {data, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
             });
@@ -33,17 +33,12 @@ const Register = () => {
                 return;
             }
 
-            const user = data?.user;
-            if (!user || !user.id) {
-                toast.error("User registration failed. Please try again.");
-                setLoading(false);
-                return;
-            }
+            
 
             // Insert user details into the `users` table
             const { error: userError } = await supabase
                 .from("users")
-                .insert([{ id: user.id, email, username, role }]);
+                .insert([{ id: data?.user?.id, email, username, role }]);
 
             if (userError) {
                 toast.error("Failed to save user details. Please try again.");
