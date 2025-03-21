@@ -3,10 +3,11 @@ import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     const navigate = useNavigate();
 
     const handleLogin = async () => {
@@ -14,15 +15,11 @@ const Login = () => {
         setError(null);
 
         try {
-            // Authenticate the user with Supabase Auth
-            const { data, error: authError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            // Authenticate user with Supabase
+            const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
             if (authError) {
-                console.error("Login error:", authError);
-                setError(authError.message || "Login failed. Please try again.");
+                setError(authError.message || "Invalid credentials. Please try again.");
                 setLoading(false);
                 return;
             }
@@ -34,21 +31,21 @@ const Login = () => {
                 return;
             }
 
-            // Fetch the user's role from the `users` table
+            // Fetch the user's role
             const { data: userData, error: userError } = await supabase
                 .from("users")
                 .select("username, role")
-                .eq("id", user.id)
+                .eq("user_id", user.id) // Ensure your table uses `user_id`
                 .single();
 
             if (userError || !userData) {
-                setError("Failed to fetch user role.");
+                setError("Failed to fetch user role. Please contact support.");
                 console.error("User role fetch error:", userError);
                 setLoading(false);
                 return;
             }
 
-            // Redirect to the appropriate dashboard based on the user's role
+            // Redirect based on role
             if (userData.role === "admin" || userData.role === "manager") {
                 navigate("/admin-dashboard");
             } else {
@@ -56,7 +53,7 @@ const Login = () => {
             }
         } catch (error) {
             console.error("Login error:", error);
-            setError("An unexpected error occurred during login.");
+            setError("An unexpected error occurred. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -74,13 +71,22 @@ const Login = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full p-2 mb-4 border rounded"
                 />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2 mb-4 border rounded"
-                />
+                <div className="relative">
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-2 mb-4 border rounded"
+                    />
+                    <button
+                        type="button"
+                        className="absolute right-3 top-3 text-gray-600"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? "🙈" : "👁️"}
+                    </button>
+                </div>
                 <button
                     onClick={handleLogin}
                     disabled={loading}
